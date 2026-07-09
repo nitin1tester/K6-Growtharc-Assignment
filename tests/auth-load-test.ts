@@ -17,6 +17,8 @@ import { authFlowScenario, authFlowThresholds } from '../scenarios/auth-flow.sce
 import { authedRequest } from '../src/utils/httpClient.ts';
 import { errorRate } from '../src/utils/metrics.ts';
 import type { User } from '../src/types/index.ts';
+import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
 
 // Parsed once, shared read-only across all VUs.
 const users = new SharedArray<User>('users', function () {
@@ -39,4 +41,14 @@ export default function (): void {
   errorRate.add(!ok);
 
   sleep(1);
+}
+
+// Runs once at the very end of the test. Returning a map of
+// { filePath: content } writes each entry to disk (relative to where k6
+// was invoked) in addition to k6's normal console summary.
+export function handleSummary(data: unknown) {
+  return {
+    'reports/auth-summary.html': htmlReport(data),
+    stdout: textSummary(data, { indent: ' ', enableColors: true }),
+  };
 }

@@ -20,6 +20,11 @@ on:
   schedule:
     - cron: '0 4 * * *' # nightly, 4am UTC
 
+permissions:
+  contents: read
+  pages: write # required to deploy to GitHub Pages
+  id-token: write # required by actions/deploy-pages for OIDC auth
+
 jobs:
   # ---------------------------------------------------------------------
   # Gate: fail fast on a type error before spending runner time on load
@@ -38,8 +43,8 @@ jobs:
   # ---------------------------------------------------------------------
   # Auth flow test: the sample app has no public deployment, so this job
   # starts it inside the runner itself, waits until it's actually
-  # answering requests, then points k6 at http://localhost:3000 — the
-  # same pattern you're using locally, just automated.
+  # answering requests, then points k6 at http://localhost:3000.
+  # handleSummary() in the test file writes reports/auth-summary.html.
   # ---------------------------------------------------------------------
   auth-flow-test:
     runs-on: ubuntu-latest
@@ -57,9 +62,8 @@ jobs:
         run: |
           npm install
           nohup node server.js > ../sample-app.log 2>&1 &
-          # Poll until the app actually answers, instead of a fixed sleep.
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:3001 > /dev/null; then
+            if curl -sf http://localhost:3000 > /dev/null; then
               echo "Sample app is up"
               exit 0
             fi
@@ -77,15 +81,18 @@ jobs:
         if: failure()
         run: cat sample-app.log
 
-      - name: Upload summary
+      - name: Upload auth report artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: auth-flow-summary
-          path: reports/auth-summary.json
+          name: auth-flow-report
+          path: |
+            reports/auth-summary.json
+            reports/auth-summary.html
 
   # ---------------------------------------------------------------------
   # Homepage test: hits growtharc.com directly, no local dependency.
+  # handleSummary() writes reports/homepage-summary.html.
   # ---------------------------------------------------------------------
   homepage-load-test:
     runs-on: ubuntu-latest
@@ -100,9 +107,76 @@ jobs:
           filename: tests/homepage-load-test.ts
           flags: -e ENV=prod --summary-export=reports/homepage-summary.json
 
-      - name: Upload summary
+      - name: Upload homepage report artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: homepage-summary
-          path: reports/homepage-summary.json
+          name: homepage-report
+          path: |
+            reports/homepage-summary.json
+            reports/homepage-summary.html
+
+  # ---------------------------------------------------------------------
+  # Dashboard: pulls both HTML reports back down, builds a small landing
+  # page linking to them, and publishes the whole thing to GitHub Pages.
+  # Runs even if one of the test jobs failed, so a failing run still
+  # produces a visible report instead of nothing.
+  # ---------------------------------------------------------------------
+  publish-dashboard:
+    runs-on: ubuntu-latest
+    needs: [auth-flow-test, homepage-load-test]
+    if: always()
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download auth report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: auth-flow-report
+          path: site
+
+      - name: Download homepage report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: homepage-report
+          path: site
+
+      - name: Build landing page
+        run: |
+          mkdir -p site
+          cat > site/index.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>K6 Performance Dashboard</title>
+            <style>
+              body { font-family: -apple-system, sans-serif; max-width: 640px; margin: 60px auto; padding: 0 20px; }
+              h1 { font-size: 1.4rem; }
+              .meta { color: #666; font-size: 0.9rem; margin-bottom: 24px; }
+              a.card { display: block; padding: 16px; margin: 12px 0; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: #111; }
+              a.card:hover { background: #f7f7f7; }
+            </style>
+          </head>
+          <body>
+            <h1>K6 Performance Test Dashboard</h1>
+            <div class="meta">
+              Run: ${{ github.run_number }} &middot; Commit: ${{ github.sha }} &middot; ${{ github.event_name }}
+            </div>
+            <a class="card" href="auth-summary.html">Auth Flow Load Test Report</a>
+            <a class="card" href="homepage-summary.html">Homepage Load Test Report (500 concurrent users)</a>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

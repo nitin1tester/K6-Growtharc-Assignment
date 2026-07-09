@@ -16,10 +16,10 @@ export const authFlowScenario: NonNullable<Options['scenarios']>[string] = {
   executor: 'ramping-vus',
   startVUs: 0,
   stages: [
-    { duration: '2m', target: 10 }, // ramp-up: 0 -> 10
-    { duration: '3m', target: 100 }, // ramp-up: 10 -> 100
-    { duration: '5m', target: 100 }, // steady state
-    { duration: '2m', target: 0 }, // ramp-down
+    { duration: '1m', target: 10 }, // ramp-up: 0 -> 10
+    { duration: '2m', target: 100 }, // ramp-up: 10 -> 100
+    { duration: '3m', target: 100 }, // steady state
+    { duration: '1m', target: 0 }, // ramp-down
   ],
   gracefulRampDown: '30s',
 };
