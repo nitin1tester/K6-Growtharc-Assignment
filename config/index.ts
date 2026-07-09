@@ -13,7 +13,7 @@
  *   k6 run tests/auth-load-test.ts -e ENV=prod
  *
  * Any value can still be overridden directly without touching JSON, e.g.:
- *   k6 run tests/auth-load-test.ts -e ENV=local -e BASE_URL=http://localhost:4000
+ *   k6 run tests/auth-load-test.ts -e ENV=local -e BASE_URL=https://k6-sample-app.onrender.com
  */
 
 import type { AppConfig, EnvConfig } from '../src/types/index.ts';

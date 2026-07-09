@@ -1,6 +1,6 @@
 {
   "name": "local",
-  "baseUrl": "http://localhost:3001",
+  "baseUrl": "https://k6-sample-app.onrender.com",
   "homepageUrl": "https://growtharc.com",
   "tokenTtlSeconds": 60
 }
