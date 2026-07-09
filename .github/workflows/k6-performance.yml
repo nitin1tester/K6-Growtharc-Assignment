@@ -63,7 +63,7 @@ jobs:
           npm install
           nohup node server.js > ../sample-app.log 2>&1 &
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:3000 > /dev/null; then
+            if curl -sf http://localhost:3001 > /dev/null; then
               echo "Sample app is up"
               exit 0
             fi
