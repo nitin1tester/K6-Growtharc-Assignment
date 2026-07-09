@@ -1,0 +1,5 @@
+reports/*.json
+reports/*.html
+node_modules/
+.env
+*.tsbuildinfo

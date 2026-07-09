@@ -1,0 +1,6 @@
+{
+  "name": "prod",
+  "baseUrl": "https://api.growtharc.com",
+  "homepageUrl": "https://growtharc.com",
+  "tokenTtlSeconds": 300
+}

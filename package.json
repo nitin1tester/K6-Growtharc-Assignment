@@ -1,0 +1,16 @@
+{
+  "name": "k6-performance-framework-ts",
+  "version": "1.0.0",
+  "description": "TypeScript k6 performance testing framework: auth flow + token refresh, and homepage load tests",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:auth:local": "k6 run tests/auth-load-test.ts -e ENV=local",
+    "test:auth:staging": "k6 run tests/auth-load-test.ts -e ENV=staging",
+    "test:homepage:prod": "k6 run tests/homepage-load-test.ts -e ENV=prod --summary-export=reports/homepage-summary.json",
+    "test:all:local": "npm run test:auth:local && npm run test:homepage:prod"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/k6": "^0.54.0"
+  }
+}
