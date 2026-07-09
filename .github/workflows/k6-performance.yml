@@ -1,18 +1,30 @@
 name: K6 Performance Tests (TypeScript)
 
+# Triggers:
+#   - push/PR to main: run automatically on every change
+#   - workflow_dispatch: manual "Run workflow" button in the Actions tab
+#   - schedule: nightly run, independent of anyone pushing code
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Target environment'
+      target:
+        description: 'Which test(s) to run'
         required: true
-        default: 'staging'
+        default: 'both'
         type: choice
-        options: [local, staging, prod]
+        options: [auth-flow, homepage, both]
   schedule:
-    - cron: '0 4 * * *' # nightly
+    - cron: '0 4 * * *' # nightly, 4am UTC
 
 jobs:
+  # ---------------------------------------------------------------------
+  # Gate: fail fast on a type error before spending runner time on load
+  # tests. Every other job waits on this one.
+  # ---------------------------------------------------------------------
   typecheck:
     runs-on: ubuntu-latest
     steps:
@@ -23,17 +35,47 @@ jobs:
       - run: npm install
       - run: npm run typecheck
 
+  # ---------------------------------------------------------------------
+  # Auth flow test: the sample app has no public deployment, so this job
+  # starts it inside the runner itself, waits until it's actually
+  # answering requests, then points k6 at http://localhost:3000 — the
+  # same pattern you're using locally, just automated.
+  # ---------------------------------------------------------------------
   auth-flow-test:
     runs-on: ubuntu-latest
     needs: typecheck
+    if: ${{ github.event.inputs.target == 'auth-flow' || github.event.inputs.target == 'both' || github.event.inputs.target == '' }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install and start sample app
+        working-directory: sample-app
+        run: |
+          npm install
+          nohup node server.js > ../sample-app.log 2>&1 &
+          # Poll until the app actually answers, instead of a fixed sleep.
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "Sample app is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Sample app failed to start"; cat ../sample-app.log; exit 1
 
       - name: Run auth flow load test
         uses: grafana/k6-action@v0.3.1
         with:
           filename: tests/auth-load-test.ts
-          flags: -e ENV=${{ github.event.inputs.environment || 'staging' }} --summary-export=reports/auth-summary.json
+          flags: -e ENV=local --summary-export=reports/auth-summary.json
+
+      - name: Show sample app log on failure
+        if: failure()
+        run: cat sample-app.log
 
       - name: Upload summary
         if: always()
@@ -42,9 +84,13 @@ jobs:
           name: auth-flow-summary
           path: reports/auth-summary.json
 
+  # ---------------------------------------------------------------------
+  # Homepage test: hits growtharc.com directly, no local dependency.
+  # ---------------------------------------------------------------------
   homepage-load-test:
     runs-on: ubuntu-latest
     needs: typecheck
+    if: ${{ github.event.inputs.target == 'homepage' || github.event.inputs.target == 'both' || github.event.inputs.target == '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +98,7 @@ jobs:
         uses: grafana/k6-action@v0.3.1
         with:
           filename: tests/homepage-load-test.ts
-          flags: -e ENV=${{ github.event.inputs.environment || 'staging' }} --summary-export=reports/homepage-summary.json
+          flags: -e ENV=prod --summary-export=reports/homepage-summary.json
 
       - name: Upload summary
         if: always()

@@ -1,6 +1,6 @@
 {
   "name": "staging",
-  "baseUrl": "https://staging-api.example.com",
-  "homepageUrl": "https://staging.growtharc.com",
-  "tokenTtlSeconds": 300
+  "baseUrl": "http://localhost:3001",
+  "homepageUrl": "https://growtharc.com",
+  "tokenTtlSeconds": 60
 }

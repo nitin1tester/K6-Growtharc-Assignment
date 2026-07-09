@@ -1,6 +1,6 @@
 {
   "name": "local",
-  "baseUrl": "http://localhost:3000",
+  "baseUrl": "http://localhost:3001",
   "homepageUrl": "https://growtharc.com",
   "tokenTtlSeconds": 60
 }

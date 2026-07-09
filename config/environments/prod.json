@@ -1,6 +1,6 @@
 {
   "name": "prod",
-  "baseUrl": "https://api.growtharc.com",
+  "baseUrl": "http://localhost:3001",
   "homepageUrl": "https://growtharc.com",
-  "tokenTtlSeconds": 300
+  "tokenTtlSeconds": 60
 }
