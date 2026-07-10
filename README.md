@@ -63,12 +63,29 @@ k6-framework-ts/
   all typed instead of `any`.
 
 ## Running
-
-```bash
-# from k6-framework-ts/ root
-npm install          # only needed for typecheck / editor support
-npm run typecheck    # optional, catches type errors before running
-
-k6 run tests/auth-load-test.ts -e ENV=local -e BASE_URL=http://localhost:4000
-k6 run tests/homepage-load-test.ts -e ENV=prod
+| Description | Command |
+|---|---|
+| Check k6 version | `k6 version` |
+| Install project dependencies | `npm install` |
+| Install sample app dependencies | `cd sample-app && npm install` |
+| Start sample app | `node server.js` |
+| Start sample app on custom port | `PORT=3001 node server.js` |
+| Health check | `curl http://localhost:3001` |
+| Login | `curl -X POST http://localhost:3001/api/login -H "Content-Type: application/json" -d '{"username":"user0001","password":"P@ss1001!"}'` |
+| Access protected route | `curl http://localhost:3001/api/profile -H "Authorization: Bearer PASTE_YOUR_TOKEN_HERE"` |
+| Invalid credentials check | `curl -i -X POST http://localhost:3000/api/login -H "Content-Type: application/json" -d '{"username":"user0001","password":"wrongpassword"}'` |
+| Missing token check | `curl -i http://localhost:3001/api/profile` |
+| Invalid token check | `curl -i http://localhost:3001/api/profile -H "Authorization: Bearer not-a-real-token"` |
+| Type-check the project | `npm run typecheck` |
+| Run both tests together | `npm run test:all:local` |
+| Run auth flow test | `npm run test:auth:local` |
+| Run homepage test | `npm run test:homepage:prod` |
+| Run auth test (raw k6) | `k6 run tests/auth-load-test.ts -e ENV=local` |
+| Run homepage test (raw k6) | `k6 run tests/homepage-load-test.ts -e ENV=prod` |
+| Run auth test with port override | `k6 run tests/auth-load-test.ts -e ENV=local -e BASE_URL=http://localhost:3001` |
+| Find process on port 3001 | `lsof -i :3001` |
+| Kill process by PID | `kill -9 <PID>` |
+| Git add + commit | `git add . && git commit -m "message"` |
+| Git push | `git push` |
+| Git pull | `git pull` |
 ```
